@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Optimizely Custom Results Generator</title>
+    <meta charset='utf-8'>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* A simple reset. */
+        
+        *,
+         ::before,
+         ::after {
+            margin: 0;
+            box-sizing: border-box;
+        }
+        
+        *+* {
+            margin-top: 1rem;
+        }
+        
+        body {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 18px;
+            line-height: 1.75;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        h1,
+        h2 {
+            font-weight: 300;
+            line-height: 1.125;
+        }
+        
+        .content,
+        .results {
+            width: 90vw;
+            max-width: 1400px;
+            margin: 8vh auto;
+        }
+        
+        .results {
+            background: #eee;
+            padding: 2em;
+        }
+        
+        .testing p {
+            margin-bottom: 0;
+            font-weight: bold;
+        }
+        
+        .contact-form__label {
+            width: 270px;
+            display: inline-block;
+            text-align: right;
+            margin-right: .5em;
+        }
+        
+        .contact-form__input-group {
+            margin-top: 0;
+            margin-left: 0;
+        }
+        
+        .contact-form__input-group .input-field {
+            background: #eee;
+            padding: 0 .5em .5em;
+            border-radius: 3px;
+            display: inline-block;
+            margin-top: .2em;
+            font-size: 1em;
+        }
+        
+        .contact-form__input-group .input-field input {
+            padding-left: 5px;
+        }
+        
+        input[type='range'] {
+            accent-color: #0037ff;
+        }
+        
+        .contact-form__button {
+            background-color: #0037ff;
+            border-color: #0037ff;
+            color: #fff;
+            vertical-align: middle;
+            white-space: nowrap;
+            font-family: inherit;
+            cursor: pointer;
+            margin: 0;
+            line-height: 32px;
+            border-width: 1px;
+            border-style: solid;
+            font-size: 16px;
+            font-weight: 400;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            border-radius: 4px;
+            height: 34px;
+            padding: 0 15px;
+            margin-top: 1em;
+            display: inline-block;
+            width: fit-content;
+        }
+        
+        .contact-form {
+            position: relative;
+            display: block;
+            margin: 0;
+            padding: 1rem 0 2rem;
+            border-top: 1px solid #666;
+            border-bottom: 1px solid #666;
+            overflow: hidden;
+        }
+        
+        #contact_submit {
+            text-decoration: none;
+        }
+        
+        #contact_submit.disabled {
+            background-color: #cccccc;
+            border-color: #cccccc;
+            color: #666666;
+            cursor: default;
+        }
+        
+        @media only screen and (max-width: 1510px) {
+            .content,
+            .results {
+                width: auto;
+                max-width: inherit;
+                margin: 2em;
+            }
+            .contact-form__input-group .contact-form__label {
+                width: 200px;
+                flex: auto;
+                text-align: left;
+                margin-top: .5em;
+            }
+            .contact-form__input-group .input-field {
+                width: 100%;
+                text-align: left;
+                display: inline-flex;
+            }
+            .contact-form__input-group .input-field input {
+                flex: auto;
+                margin-top: .7em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <section class="content">
+        <h1 class="content__heading">Build out your custom results dashboard!</h1>
+        <p class="content__lede">Use this form to generate the JSON. After filling out the form, click 'Submit' to view the JSON and 'Download JSON' to get your file.</p>
+        <form class="content__form contact-form">
+            <div class="testing">
+                <p>Choose a Flag Name:</p>
+            </div>
+            <div class="contact-form__input-group">
+                <label for="project-select">Feature flag:</label>
+                <select name="flag_name" id="project-select">
+                <option value="">--Please choose an option--</option>
+                <option value="mosey_bank_unlimited_card" selected="'selected'">Mosey Bank Unlimited Card</option>
+                <option value="Electronics TV discount">Electronics TV discount</option>
+                <option value="Form Flow Reorder">Form Flow Reorder</option>
+              </select>
+            </div>
+            <input name="KeyPrefix" type="hidden" value="" />
+            <div class="testing">
+                <p>Select the number of visitors (3000-27000):</p>
+            </div>
+            <div class="contact-form__input-group">
+                <!-- <input type="range" min="0" max="18000" /> -->
+                <input id="NumberOfUsers" type="range" min="3000" max="27000" step="3000" list="tickmarks" name="NumberOfUsers" style="display: inline-block;">
+                <datalist id="tickmarks">
+              <option value="3000" label="3000"></option>
+              <option value="6000"></option>
+              <option value="9000"></option>
+              <option value="12000"></option>
+              <option value="15000"></option>
+              <option value="18000"></option>
+              <option value="21000"></option>
+              <option value="24000"></option>
+              <option value="27000" label="27000"></option>
+            </datalist>
+                <p style="display: inline-block; margin-left:1em;" id="visitors-num">Total # of visitors: <span>100</span></p>
+                <script>
+                    document.querySelector('.contact-form__input-group #visitors-num span').innerHTML = document.querySelector('.contact-form__input-group #NumberOfUsers').value;
+                    document.querySelector('.contact-form__input-group #NumberOfUsers').addEventListener('change', function() {
+                        document.querySelector('.contact-form__input-group #visitors-num span').innerHTML = document.querySelector('.contact-form__input-group #NumberOfUsers').value;
+                    });
+                </script>
+            </div>
+            <input name="orig_traffic" type="hidden" />
+            <input name="v1_traffic" type="hidden" />
+            <input name="v2_traffic" type="hidden" />
+
+            <input name="orig_user_a" type="hidden" />
+            <input name="orig_user_b" type="hidden" />
+            <input name="orig_user_c" type="hidden" />
+            <input name="orig_user_d" type="hidden" />
+            <input name="orig_user_e" type="hidden" />
+            <input name="v1_user_a" type="hidden" />
+            <input name="v1_user_b" type="hidden" />
+            <input name="v1_user_c" type="hidden" />
+            <input name="v1_user_d" type="hidden" />
+            <input name="v1_user_e" type="hidden" />
+            <input name="v2_user_a" type="hidden" />
+            <input name="v2_user_b" type="hidden" />
+            <input name="v2_user_c" type="hidden" />
+            <input name="v2_user_d" type="hidden" />
+            <input name="v2_user_e" type="hidden" />
+            <div class="testing">
+                <p>Name your three metrics:</p>
+            </div>
+            <div class="contact-form__input-group">
+                <span class="input-field">
+                <label class="contact-form__label" for="metric_1_name">Metric name #1</label>
+                <input class="contact-form__input contact-form__input--text" id="metric_1_name" name="metric_1_name" type="text" value="viewed_credit_card_details" />
+                <input name="metric_1_api" type="hidden" value="" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="metric_2_name">Metric name #2</label>
+                <input class="contact-form__input contact-form__input--text" id="metric_2_name" name="metric_2_name" type="text" value="started_application" />
+                <input name="metric_2_api" type="hidden" value="" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="metric_3_name">Metric name #3</label>
+                <input class="contact-form__input contact-form__input--text" id="metric_3_name" name="metric_3_name" type="text" value="completed_application" />
+                <input name="metric_3_api" type="hidden" value="" />
+                </span>
+            </div>
+            <div class="testing">
+                <p>Name your three variations:</p>
+            </div>
+            <div class="contact-form__input-group">
+                <span class="input-field">
+                <label class="contact-form__label" for="variation_0_name">Variation name (Original)</label>
+                <input class="contact-form__input contact-form__input--text contact-form__variation" id="variation_0_name" name="variation_0_name" type="text" value="on_defaults" />
+                <input name="variation_orig_api" type="hidden" value="" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="variation_1_name">Variation name 1</label>
+                <input class="contact-form__input contact-form__input--text contact-form__variation" id="variation_1_name" name="variation_1_name" type="text" value="annual_fee_100_cashback_2_5" />
+                <input name="variation_1_api" type="hidden" value="" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="variation_2_name">Variation name 2</label>
+                <input class="contact-form__input contact-form__input--text contact-form__variation" id="variation_2_name" name="variation_2_name" type="text" value="annual_fee_50_cashback_2" />
+                <input name="variation_2_api" type="hidden" value="" />
+              </span>
+            </div>
+            <!-- <input name="orig_rate_m1" type="hidden" />
+            <input name="orig_rate_m2" type="hidden" />
+            <input name="orig_rate_m3" type="hidden" /> -->
+
+            <div class="testing" id="orig_title">
+                <p>Conversion Rate for Original (%):</p>
+            </div>
+            <div class="contact-form__input-group">
+                <span class="input-field">
+                <label class="contact-form__label" for="orig_rate_m1">Metric Conversion #1</label>
+                <input class="contact-form__input contact-form__input--text" id="orig_rate_m1" name="orig_rate_m1" type="text" value="42.78" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="orig_rate_m2">Metric Conversion #2</label>
+                <input class="contact-form__input contact-form__input--text" id="orig_rate_m2" name="orig_rate_m2" type="text" value="36.82" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="orig_rate_m3">Metric Conversion #3</label>
+                <input class="contact-form__input contact-form__input--text" id="orig_rate_m3" name="orig_rate_m3" type="text" value="51.88" />
+              </span>
+            </div>
+            <div class="testing" id="var1_title">
+                <p>Improvement for Variation #1 (%):</p>
+            </div>
+            <div class="contact-form__input-group">
+                <span class="input-field">
+                <label class="contact-form__label" for="v1_improve_m1">Metric improvement #1</label>
+                <input class="contact-form__input contact-form__input--text" id="v1_improve_m1" name="v1_improve_m1" type="text" value="45.97" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="v1_improve_m2">Metric improvement #2</label>
+                <input class="contact-form__input contact-form__input--text" id="v1_improve_m2" name="v1_improve_m2" type="text" value="42.34" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="v1_improve_m3">Metric improvement #3</label>
+                <input class="contact-form__input contact-form__input--text" id="v1_improve_m3" name="v1_improve_m3" type="text" value="60.69" />
+              </span>
+            </div>
+            <div class="testing" id="var2_title">
+                <p>Improvement for Variation #2 (%):</p>
+            </div>
+            <div class="contact-form__input-group">
+                <span class="input-field">
+                <label class="contact-form__label" for="v2_improve_m1">Metric improvement #1</label>
+                <input class="contact-form__input contact-form__input--text" id="v2_improve_m1" name="v2_improve_m1" type="text" value="51.06" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="v2_improve_m2">Metric improvement #2</label>
+                <input class="contact-form__input contact-form__input--text" id="v2_improve_m2" name="v2_improve_m2" type="text" value="43.83" />
+              </span>
+                <span class="input-field">
+                <label class="contact-form__label" for="v2_improve_m3">Metric improvement #3</label>
+                <input class="contact-form__input contact-form__input--text" id="v2_improve_m3" name="v2_improve_m3" type="text" value="62.04" />
+              </span>
+            </div>
+            <!-- <input name="orig_chance_m1" type="hidden" />
+            <input name="orig_chance_m2" type="hidden" />
+            <input name="orig_chance_m3" type="hidden" /> -->
+            <input name="v1_chance_m1" type="hidden" />
+            <input name="v1_chance_m2" type="hidden" />
+            <input name="v1_chance_m3" type="hidden" />
+            <input name="v2_chance_m1" type="hidden" />
+            <input name="v2_chance_m2" type="hidden" />
+            <input name="v2_chance_m3" type="hidden" />
+
+            <input name="m1_user_a" type="hidden" />
+            <input name="m1_user_b" type="hidden" />
+            <input name="m1_user_c" type="hidden" />
+            <input name="m1_user_d" type="hidden" />
+            <input name="m1_user_e" type="hidden" />
+            <input name="m2_user_a" type="hidden" />
+            <input name="m2_user_b" type="hidden" />
+            <input name="m2_user_c" type="hidden" />
+            <input name="m2_user_d" type="hidden" />
+            <input name="m2_user_e" type="hidden" />
+            <input name="m3_user_a" type="hidden" />
+            <input name="m3_user_b" type="hidden" />
+            <input name="m3_user_c" type="hidden" />
+            <input name="m3_user_d" type="hidden" />
+            <input name="m3_user_e" type="hidden" />
+            <div class=".button-container">
+                <button class="contact-form__button" type="submit">Submit</button>
+                <a id="contact_submit" class="contact-form__button disabled">Download JSON</a>
+            </div>
+        </form>
+    </section>
+    <div class="results">
+        <h2 class="results__heading">Results JSON:</h2>
+        <pre class="results__display-wrapper"><code class="results__display"></code></pre>
+    </div>
+
+    <script>
+        const isValidElement = element => {
+            return element.name && element.value;
+        };
+        const isValidValue = element => {
+            return (!['checkbox', 'radio'].includes(element.type) || element.checked);
+        };
+        const formToJSON_deconstructed = elements => {
+            const reducerFunction = (data, element) => {
+                data[element.name] = element.value;
+                console.log(JSON.stringify(data));
+                return data;
+            };
+            const reducerInitialValue = {};
+            console.log('Initial `data` value:', JSON.stringify(reducerInitialValue));
+            const formData = [].reduce.call(elements, reducerFunction, reducerInitialValue);
+            return formData;
+        };
+
+        function percentage(partialValue, totalValue) {
+            return (100 * partialValue) / totalValue;
+        }
+        const formToJSON = elements => [].reduce.call(elements, (data, element) => {
+            if (isValidElement(element) && isValidValue(element)) {
+                data[element.name] = element.value;
+            }
+            return data;
+        }, {});
+        const handleFormSubmit = event => {
+            event.preventDefault();
+            document.querySelector('.contact-form input[name="KeyPrefix"]').value = document.querySelector('.contact-form__input-group #project-select').value.toLowerCase().replaceAll(" ", "_");
+            document.querySelector('.contact-form input[name="metric_1_api"]').value = document.querySelector('.contact-form__input-group #metric_1_name').value.toLowerCase().replaceAll(" ", "_");
+            document.querySelector('.contact-form input[name="metric_2_api"]').value = document.querySelector('.contact-form__input-group #metric_2_name').value.toLowerCase().replaceAll(" ", "_");
+            document.querySelector('.contact-form input[name="metric_3_api"]').value = document.querySelector('.contact-form__input-group #metric_3_name').value.toLowerCase().replaceAll(" ", "_");
+            document.querySelector('.contact-form input[name="variation_1_api"]').value = document.querySelector('.contact-form__input-group #variation_1_name').value.toLowerCase().replaceAll(" ", "_");
+            document.querySelector('.contact-form input[name="variation_2_api"]').value = document.querySelector('.contact-form__input-group #variation_2_name').value.toLowerCase().replaceAll(" ", "_");
+            document.querySelector('.contact-form input[name="variation_orig_api"]').value = document.querySelector('.contact-form__input-group #variation_0_name').value.toLowerCase().replaceAll(" ", "_");
+            //set equal traffic split (whole/variations)
+            document.querySelector('.contact-form input[name="orig_traffic"]').value = document.querySelector('.contact-form__input-group #NumberOfUsers').value / document.querySelectorAll('.contact-form__input-group .contact-form__variation').length;
+            document.querySelector('.contact-form input[name="v1_traffic"]').value = document.querySelector('.contact-form__input-group #NumberOfUsers').value / document.querySelectorAll('.contact-form__input-group .contact-form__variation').length;
+            document.querySelector('.contact-form input[name="v2_traffic"]').value = document.querySelector('.contact-form__input-group #NumberOfUsers').value / document.querySelectorAll('.contact-form__input-group .contact-form__variation').length;
+
+            var numberOfUsers = parseInt(document.querySelector('.contact-form__input-group #NumberOfUsers').value);
+            var traffic = [];
+            var decisions = [];
+            
+            traffic[0] = parseInt(document.querySelector('.contact-form input[name="orig_traffic"]').value);
+            traffic[1] = parseInt(document.querySelector('.contact-form input[name="v1_traffic"]').value);
+            traffic[2] = parseInt(document.querySelector('.contact-form input[name="v2_traffic"]').value);
+
+            //set user traffic splits for variations (random 10-30 for first four users);
+            var orig_split_a = Math.floor((Math.random() * 20) + 10);
+            var orig_split_b = Math.floor((Math.random() * 20) + 10);
+            var orig_split_c = Math.floor((Math.random() * 20) + 10);
+            var orig_split_d = Math.floor((Math.random() * 20) + 10);
+            var orig_split_e = 100 - (orig_split_a + orig_split_b + orig_split_c + orig_split_d);
+            document.querySelector('.contact-form input[name="orig_user_a"]').value = orig_split_a;
+            document.querySelector('.contact-form input[name="orig_user_b"]').value = orig_split_b;
+            document.querySelector('.contact-form input[name="orig_user_c"]').value = orig_split_c;
+            document.querySelector('.contact-form input[name="orig_user_d"]').value = orig_split_d;
+            document.querySelector('.contact-form input[name="orig_user_e"]').value = orig_split_e;
+            var v1_split_a = Math.floor((Math.random() * 20) + 10);
+            var v1_split_b = Math.floor((Math.random() * 20) + 10);
+            var v1_split_c = Math.floor((Math.random() * 20) + 10);
+            var v1_split_d = Math.floor((Math.random() * 20) + 10);
+            var v1_split_e = 100 - (v1_split_a + v1_split_b + v1_split_c + v1_split_d);
+            document.querySelector('.contact-form input[name="v1_user_a"]').value = v1_split_a;
+            document.querySelector('.contact-form input[name="v1_user_b"]').value = v1_split_b;
+            document.querySelector('.contact-form input[name="v1_user_c"]').value = v1_split_c;
+            document.querySelector('.contact-form input[name="v1_user_d"]').value = v1_split_d;
+            document.querySelector('.contact-form input[name="v1_user_e"]').value = v1_split_e;
+            var v2_split_a = Math.floor((Math.random() * 20) + 10);
+            var v2_split_b = Math.floor((Math.random() * 20) + 10);
+            var v2_split_c = Math.floor((Math.random() * 20) + 10);
+            var v2_split_d = Math.floor((Math.random() * 20) + 10);
+            var v2_split_e = 100 - (v2_split_a + v2_split_b + v2_split_c + v2_split_d);
+            document.querySelector('.contact-form input[name="v2_user_a"]').value = v2_split_a;
+            document.querySelector('.contact-form input[name="v2_user_b"]').value = v2_split_b;
+            document.querySelector('.contact-form input[name="v2_user_c"]').value = v2_split_c;
+            document.querySelector('.contact-form input[name="v2_user_d"]').value = v2_split_d;
+            document.querySelector('.contact-form input[name="v2_user_e"]').value = v2_split_e;
+
+            //calculate conversion rate on each variation
+            var orig_chance_m1 = document.querySelector('.contact-form__input-group #orig_rate_m1').value;
+            var orig_chance_m2 = document.querySelector('.contact-form__input-group #orig_rate_m2').value;
+            var orig_chance_m3 = document.querySelector('.contact-form__input-group #orig_rate_m3').value;
+
+            var v1_traffic = Number(document.querySelector('.contact-form input[name="v1_traffic"]').value);
+            var v1_chance_m1 = (v1_traffic * (orig_chance_m1 / 100));
+            v1_chance_m1 = v1_chance_m1 + (v1_chance_m1 * (Number(document.querySelector('.contact-form__input-group #v1_improve_m1').value) / 100));
+            v1_chance_m1 = percentage(v1_chance_m1, v1_traffic);
+            var v1_chance_m2 = (v1_traffic * (orig_chance_m2 / 100));
+            v1_chance_m2 = v1_chance_m2 + (v1_chance_m2 * (Number(document.querySelector('.contact-form__input-group #v1_improve_m2').value) / 100));
+            v1_chance_m2 = percentage(v1_chance_m2, v1_traffic);
+            var v1_chance_m3 = (v1_traffic * (orig_chance_m3 / 100));
+            v1_chance_m3 = v1_chance_m3 + (v1_chance_m3 * (Number(document.querySelector('.contact-form__input-group #v1_improve_m3').value) / 100));
+            v1_chance_m3 = percentage(v1_chance_m3, v1_traffic);
+
+            var v2_traffic = Number(document.querySelector('.contact-form input[name="v2_traffic"]').value);
+            var v2_chance_m1 = (v2_traffic * (orig_chance_m1 / 100));
+            v2_chance_m1 = v2_chance_m1 + (v2_chance_m1 * (Number(document.querySelector('.contact-form__input-group #v2_improve_m1').value) / 100));
+            v2_chance_m1 = percentage(v2_chance_m1, v2_traffic);
+            var v2_chance_m2 = (v2_traffic * (orig_chance_m2 / 100));
+            v2_chance_m2 = v2_chance_m2 + (v2_chance_m2 * (Number(document.querySelector('.contact-form__input-group #v2_improve_m2').value) / 100));
+            v2_chance_m2 = percentage(v2_chance_m2, v2_traffic);
+            var v2_chance_m3 = (v2_traffic * (orig_chance_m3 / 100));
+            v2_chance_m3 = v2_chance_m3 + (v2_chance_m3 * (Number(document.querySelector('.contact-form__input-group #v2_improve_m3').value) / 100));
+            v2_chance_m3 = percentage(v2_chance_m3, v2_traffic);
+
+            // document.querySelector('.contact-form input[name="orig_chance_m1"]').value = orig_chance_m1;
+            // document.querySelector('.contact-form input[name="orig_chance_m2"]').value = orig_chance_m2;
+            // document.querySelector('.contact-form input[name="orig_chance_m3"]').value = orig_chance_m3;
+            document.querySelector('.contact-form input[name="v1_chance_m1"]').value = v1_chance_m1;
+            document.querySelector('.contact-form input[name="v1_chance_m2"]').value = v1_chance_m2;
+            document.querySelector('.contact-form input[name="v1_chance_m3"]').value = v1_chance_m3;
+            document.querySelector('.contact-form input[name="v2_chance_m1"]').value = v2_chance_m1;
+            document.querySelector('.contact-form input[name="v2_chance_m2"]').value = v2_chance_m2;
+            document.querySelector('.contact-form input[name="v2_chance_m3"]').value = v2_chance_m3;
+
+            //calculate user chances of metric
+
+            var num_of_users = 5;
+            var users_m1 = [];
+            var m1_traffic = num_of_users * (orig_chance_m1 / 33.33);
+            m1_traffic = m1_traffic - 1;
+            if (Math.sign(m1_traffic) == 1 || Math.sign(m1_traffic) == 0) {
+                users_m1[0] = "Y";
+            } else {
+                users_m1[0] = "N";
+            }
+            m1_traffic = m1_traffic - 1;
+            if (Math.sign(m1_traffic) == 1 || Math.sign(m1_traffic) == 0) {
+                users_m1[1] = "Y";
+            } else {
+                users_m1[1] = "N";
+            }
+            m1_traffic = m1_traffic - 1;
+            if (Math.sign(m1_traffic) == 1 || Math.sign(m1_traffic) == 0) {
+                users_m1[2] = "Y";
+            } else {
+                users_m1[2] = "N";
+            }
+            m1_traffic = m1_traffic - 1;
+            if (Math.sign(m1_traffic) == 1 || Math.sign(m1_traffic) == 0) {
+                users_m1[3] = "Y";
+            } else {
+                users_m1[3] = "N";
+            }
+            m1_traffic = m1_traffic - 1;
+            if (Math.sign(m1_traffic) == 1 || Math.sign(m1_traffic) == 0) {
+                users_m1[4] = "Y";
+            } else {
+                users_m1[4] = "N";
+            }
+
+            var users_m2 = [];
+            var m2_traffic = num_of_users * (orig_chance_m2 / 33.33);
+            m2_traffic = m2_traffic - 1;
+            if (Math.sign(m2_traffic) == 1 || Math.sign(m2_traffic) == 0) {
+                users_m2[0] = "Y";
+            } else {
+                users_m2[0] = "N";
+            }
+            m2_traffic = m2_traffic - 1;
+            if (Math.sign(m2_traffic) == 1 || Math.sign(m2_traffic) == 0) {
+                users_m2[1] = "Y";
+            } else {
+                users_m2[1] = "N";
+            }
+            m2_traffic = m2_traffic - 1;
+            if (Math.sign(m2_traffic) == 1 || Math.sign(m2_traffic) == 0) {
+                users_m2[2] = "Y";
+            } else {
+                users_m2[2] = "N";
+            }
+            m2_traffic = m2_traffic - 1;
+            if (Math.sign(m2_traffic) == 1 || Math.sign(m2_traffic) == 0) {
+                users_m2[3] = "Y";
+            } else {
+                users_m2[3] = "N";
+            }
+            m2_traffic = m2_traffic - 1;
+            if (Math.sign(m2_traffic) == 1 || Math.sign(m2_traffic) == 0) {
+                users_m2[4] = "Y";
+            } else {
+                users_m2[4] = "N";
+            }
+
+            var users_m3 = [];
+            var m3_traffic = num_of_users * (orig_chance_m3 / 33.33);
+            m3_traffic = m3_traffic - 1;
+            if (Math.sign(m3_traffic) == 1 || Math.sign(m3_traffic) == 0) {
+                users_m3[0] = "Y";
+            } else {
+                users_m3[0] = "N";
+            }
+            m3_traffic = m3_traffic - 1;
+            if (Math.sign(m3_traffic) == 1 || Math.sign(m3_traffic) == 0) {
+                users_m3[1] = "Y";
+            } else {
+                users_m3[1] = "N";
+            }
+            m3_traffic = m3_traffic - 1;
+            if (Math.sign(m3_traffic) == 1 || Math.sign(m3_traffic) == 0) {
+                users_m3[2] = "Y";
+            } else {
+                users_m3[2] = "N";
+            }
+            m3_traffic = m3_traffic - 1;
+            if (Math.sign(m3_traffic) == 1 || Math.sign(m3_traffic) == 0) {
+                users_m3[3] = "Y";
+            } else {
+                users_m3[3] = "N";
+            }
+            m3_traffic = m3_traffic - 1;
+            if (Math.sign(m3_traffic) == 1 || Math.sign(m3_traffic) == 0) {
+                users_m3[4] = "Y";
+            } else {
+                users_m3[4] = "N";
+            }
+
+            document.querySelector('.contact-form input[name="m1_user_a"]').value = users_m1[0];
+            document.querySelector('.contact-form input[name="m1_user_b"]').value = users_m1[1];
+            document.querySelector('.contact-form input[name="m1_user_c"]').value = users_m1[2];
+            document.querySelector('.contact-form input[name="m1_user_d"]').value = users_m1[3];
+            document.querySelector('.contact-form input[name="m1_user_e"]').value = users_m1[4];
+            document.querySelector('.contact-form input[name="m2_user_a"]').value = users_m2[0];
+            document.querySelector('.contact-form input[name="m2_user_b"]').value = users_m2[1];
+            document.querySelector('.contact-form input[name="m2_user_c"]').value = users_m2[2];
+            document.querySelector('.contact-form input[name="m2_user_d"]').value = users_m2[3];
+            document.querySelector('.contact-form input[name="m2_user_e"]').value = users_m2[4];
+            document.querySelector('.contact-form input[name="m3_user_a"]').value = users_m3[0];
+            document.querySelector('.contact-form input[name="m3_user_b"]').value = users_m3[1];
+            document.querySelector('.contact-form input[name="m3_user_c"]').value = users_m3[2];
+            document.querySelector('.contact-form input[name="m3_user_d"]').value = users_m3[3];
+            document.querySelector('.contact-form input[name="m3_user_e"]').value = users_m3[4];
+
+            //set json data
+            var flagKey = document.querySelector('#project-select').value;
+            var sdkKey = 'DsYchXzHwxvGM9ScDkgCu';
+            var variationKey = '';
+            var startId = 0;
+            var body = "{ 'operations]: [";
+            
+            var resultsJSON = [];
+            
+            for (var u = 0; u < numberOfUsers; u++) {
+                if (u >= 500)
+                {
+                    var axiosConfig = {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Headers': '*',
+                        'Access-Control-Allow-Methods':'GET,PUT,POST,DELETE,PATCH,OPTIONS'
+                        }
+
+                    axios.post('http://agentsdk.optidemo.com:8080/v1/batch', {
+                        "operations": [ 
+                            resultsJSON
+                    ]}, {
+                    headers: {
+                        axiosConfig
+                    }})
+                    .then(response => {
+                        console.log(response);
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    })
+                    break;
+                }
+
+                resultsJSON[startId + u] = {
+                    "body": {
+                            "userId": "batchuser" + u,
+                            "userAttributes": {
+                                "existing_cardholder": true,
+                                "existing_card_type": "flex"
+                            }
+                        },
+                        "url": "/v1/decide?keys=" + flagKey,
+                        "method": "POST",
+                        "headers": {
+                            "X-Optimizely-SDK-Key": sdkKey,
+                            "Content-type": "application/json"
+                        }
+                };
+            }
+
+            variationKey = document.querySelector("#variation_1_name").value;
+
+            body += "]";
+
+            /*var json_m1 = {
+                "EventKey": document.querySelector('.contact-form input[name="metric_1_api"]').value,
+                "OptionalMinRevenue": 0,
+                "OptionalMaxRevenue": 0
+            }
+
+            var json_m2 = {
+                "EventKey": document.querySelector('.contact-form input[name="metric_2_api"]').value,
+                "OptionalMinRevenue": 0,
+                "OptionalMaxRevenue": 0
+            }
+
+            var json_m3 = {
+                "EventKey": document.querySelector('.contact-form input[name="metric_3_api"]').value,
+                "OptionalMinRevenue": 0,
+                "OptionalMaxRevenue": 0
+            }
+
+            for (var m1 = 0; m1 < users_m1.length; m1++) {
+                if (users_m1[m1] == 'Y') {
+                    resultsJSON.EventsEmitter.UserTypes[m1].Events.push(json_m1);
+                }
+            }
+            for (var m2 = 0; m2 < users_m2.length; m2++) {
+                if (users_m2[m2] == 'Y') {
+                    resultsJSON.EventsEmitter.UserTypes[m2].Events.push(json_m2);
+                }
+            }
+            for (var m3 = 0; m3 < users_m3.length; m3++) {
+                if (users_m3[m3] == 'Y') {
+                    resultsJSON.EventsEmitter.UserTypes[m3].Events.push(json_m3);
+                }
+            }*/
+
+            // const data = formToJSON(form.elements);
+            const data = resultsJSON;
+            const dataContainer = document.getElementsByClassName('results__display')[0];
+            dataContainer.textContent = JSON.stringify(data, null, "  ");
+
+            var dataStr = "data:text/json;charset=utf-8,{\"operations\": " + encodeURIComponent(JSON.stringify(data, null, "  ")) + "}";
+            var dlbutton = document.getElementById('contact_submit');
+            dlbutton.setAttribute("href", dataStr);
+            var dl_name = document.querySelector('.contact-form input[name="KeyPrefix"]').value + '.json';
+            console.log(dl_name);
+            dlbutton.setAttribute("download", dl_name);
+            dlbutton.classList.remove('disabled');
+            // enable this to download the rendered json
+            // dlbutton.click();
+        };
+
+        const form = document.getElementsByClassName('contact-form')[0];
+        form.addEventListener('submit', handleFormSubmit);
+
+        //handle dynamic field names
+        document.querySelector('.contact-form__input-group label[for="orig_rate_m1"]').textContent = document.querySelector('.contact-form__input-group #metric_1_name').value;
+        document.querySelector('.contact-form__input-group label[for="v1_improve_m1"]').textContent = document.querySelector('.contact-form__input-group #metric_1_name').value;
+        document.querySelector('.contact-form__input-group label[for="v2_improve_m1"]').textContent = document.querySelector('.contact-form__input-group #metric_1_name').value;
+        document.querySelector('.contact-form__input-group #metric_1_name').addEventListener('change', function() {
+            document.querySelector('.contact-form__input-group label[for="orig_rate_m1"]').textContent = document.querySelector('.contact-form__input-group #metric_1_name').value;
+            document.querySelector('.contact-form__input-group label[for="v1_improve_m1"]').textContent = document.querySelector('.contact-form__input-group #metric_1_name').value;
+            document.querySelector('.contact-form__input-group label[for="v2_improve_m1"]').textContent = document.querySelector('.contact-form__input-group #metric_1_name').value;
+        });
+        document.querySelector('.contact-form__input-group label[for="orig_rate_m2"]').textContent = document.querySelector('.contact-form__input-group #metric_2_name').value;
+        document.querySelector('.contact-form__input-group label[for="v1_improve_m2"]').textContent = document.querySelector('.contact-form__input-group #metric_2_name').value;
+        document.querySelector('.contact-form__input-group label[for="v2_improve_m2"]').textContent = document.querySelector('.contact-form__input-group #metric_2_name').value;
+        document.querySelector('.contact-form__input-group #metric_2_name').addEventListener('change', function() {
+            document.querySelector('.contact-form__input-group label[for="orig_rate_m2"]').textContent = document.querySelector('.contact-form__input-group #metric_2_name').value;
+            document.querySelector('.contact-form__input-group label[for="v1_improve_m2"]').textContent = document.querySelector('.contact-form__input-group #metric_2_name').value;
+            document.querySelector('.contact-form__input-group label[for="v2_improve_m2"]').textContent = document.querySelector('.contact-form__input-group #metric_2_name').value;
+        });
+        document.querySelector('.contact-form__input-group label[for="orig_rate_m3"]').textContent = document.querySelector('.contact-form__input-group #metric_3_name').value;
+        document.querySelector('.contact-form__input-group label[for="v1_improve_m3"]').textContent = document.querySelector('.contact-form__input-group #metric_3_name').value;
+        document.querySelector('.contact-form__input-group label[for="v2_improve_m3"]').textContent = document.querySelector('.contact-form__input-group #metric_3_name').value;
+        document.querySelector('.contact-form__input-group #metric_3_name').addEventListener('change', function() {
+            document.querySelector('.contact-form__input-group label[for="orig_rate_m3"]').textContent = document.querySelector('.contact-form__input-group #metric_3_name').value;
+            document.querySelector('.contact-form__input-group label[for="v1_improve_m3"]').textContent = document.querySelector('.contact-form__input-group #metric_3_name').value;
+            document.querySelector('.contact-form__input-group label[for="vimprove_m3"]').textContent = document.querySelector('.contact-form__input-group #metric_3_name').value;
+        });
+        document.querySelector('.contact-form #orig_title p').textContent = "Conversion Rate for " + document.querySelector('.contact-form__input-group #variation_0_name').value + " (%):";
+        document.querySelector('.contact-form__input-group #variation_0_name').addEventListener('change', function() {
+            document.querySelector('.contact-form #orig_title p').textContent = "Conversion Rate for " + document.querySelector('.contact-form__input-group #variation_0_name').value + " (%):";
+        });
+        document.querySelector('.contact-form #var1_title p').textContent = "Improvement for " + document.querySelector('.contact-form__input-group #variation_1_name').value + " (%):";
+        document.querySelector('.contact-form__input-group #variation_1_name').addEventListener('change', function() {
+            document.querySelector('.contact-form #var1_title p').textContent = "Improvement for " + document.querySelector('.contact-form__input-group #variation_1_name').value + " (%):";
+        });
+        document.querySelector('.contact-form #var2_title p').textContent = "Improvement for " + document.querySelector('.contact-form__input-group #variation_2_name').value + " (%):";
+        document.querySelector('.contact-form__input-group #variation_2_name').addEventListener('change', function() {
+            document.querySelector('.contact-form #var2_title p').textContent = "Improvement for " + document.querySelector('.contact-form__input-group #variation_2_name').value + " (%):";
+        });
+    </script>
+
+</body>
+
+</html>
