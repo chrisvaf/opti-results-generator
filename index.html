@@ -4,6 +4,7 @@
 <head>
     <title>Optimizely Custom Results Generator</title>
     <meta charset='utf-8'>
+    <script src="https://unpkg.com/ipfs-http-client@30.1.1/dist/index.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         /* A simple reset. */
@@ -390,7 +391,6 @@
 
             var numberOfUsers = parseInt(document.querySelector('.contact-form__input-group #NumberOfUsers').value);
             var traffic = [];
-            var decisions = [];
             
             traffic[0] = parseInt(document.querySelector('.contact-form input[name="orig_traffic"]').value);
             traffic[1] = parseInt(document.querySelector('.contact-form input[name="v1_traffic"]').value);
@@ -587,39 +587,19 @@
             var flagKey = document.querySelector('#project-select').value;
             var sdkKey = 'DsYchXzHwxvGM9ScDkgCu';
             var variationKey = '';
-            var startId = 0;
             var body = "{ 'operations]: [";
             
-            var resultsJSON = [];
-            
+            var requestJSON = [];
+            var loopNum = 0;
+            var v1Decisions = [];
+            var v2Decisions = [];
+            var v3Decisions = [];
+            var decision = [];
+
             for (var u = 0; u < numberOfUsers; u++) {
-                if (u >= 500)
-                {
-                    var axiosConfig = {
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Headers': '*',
-                        'Access-Control-Allow-Methods':'GET,PUT,POST,DELETE,PATCH,OPTIONS'
-                        }
-
-                    axios.post('http://agentsdk.optidemo.com:8080/v1/batch', {
-                        "operations": [ 
-                            resultsJSON
-                    ]}, {
-                    headers: {
-                        axiosConfig
-                    }})
-                    .then(response => {
-                        console.log(response);
-                    })
-                    .catch(error => {
-                        console.log(error);
-                    })
-                    break;
-                }
-
-                resultsJSON[startId + u] = {
+                requestJSON[u] = {
                     "body": {
-                            "userId": "batchuser" + u,
+                            "userId": "batchuser" + (u),
                             "userAttributes": {
                                 "existing_cardholder": true,
                                 "existing_card_type": "flex"
@@ -632,6 +612,39 @@
                             "Content-type": "application/json"
                         }
                 };
+
+                loopNum += 1;
+
+                if (loopNum == 500)
+                {
+
+                    /*const httpsAgent = new https.Agent({ rejectUnauthorized: false })*/
+
+                    // var url = 'https://40.121.193.248:8080/v1/batch';
+                    var url = 'https://agentsdk.optidemo.com:8080/v1/batch';
+
+                    var axiosConfig = {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Headers': '*',
+                        'Access-Control-Allow-Methods':'GET,PUT,POST,DELETE,PATCH,OPTIONS'
+                        };
+
+                    axios.post('', {
+                        "operations": [ 
+                            requestJSON
+                    ]}, {
+                    headers: {
+                        axiosConfig
+                    }})
+                    .then(response => {
+                        console.log(response);
+                    })
+                    .catch(error => {
+                        console.log(error);
+                    })
+                    loopNum = 0;
+                    break;
+                }
             }
 
             variationKey = document.querySelector("#variation_1_name").value;
@@ -658,22 +671,22 @@
 
             for (var m1 = 0; m1 < users_m1.length; m1++) {
                 if (users_m1[m1] == 'Y') {
-                    resultsJSON.EventsEmitter.UserTypes[m1].Events.push(json_m1);
+                    requestJSON.EventsEmitter.UserTypes[m1].Events.push(json_m1);
                 }
             }
             for (var m2 = 0; m2 < users_m2.length; m2++) {
                 if (users_m2[m2] == 'Y') {
-                    resultsJSON.EventsEmitter.UserTypes[m2].Events.push(json_m2);
+                    requestJSON.EventsEmitter.UserTypes[m2].Events.push(json_m2);
                 }
             }
             for (var m3 = 0; m3 < users_m3.length; m3++) {
                 if (users_m3[m3] == 'Y') {
-                    resultsJSON.EventsEmitter.UserTypes[m3].Events.push(json_m3);
+                    requestJSON.EventsEmitter.UserTypes[m3].Events.push(json_m3);
                 }
             }*/
 
             // const data = formToJSON(form.elements);
-            const data = resultsJSON;
+            const data = requestJSON;
             const dataContainer = document.getElementsByClassName('results__display')[0];
             dataContainer.textContent = JSON.stringify(data, null, "  ");
 
